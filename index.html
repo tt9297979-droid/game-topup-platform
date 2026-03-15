@@ -1,252 +1,157 @@
-<!DOCTYPE html>
-<html>
-
+<!doctype html>
+<html lang="th">
 <head>
-
-<meta charset="UTF-8">
-<title>Gaming Topup Platform</title>
-
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Replay2Level — สร้างด่านจากคลิปเกม</title>
 <style>
-
-body{
-margin:0;
-font-family:Arial;
-background:linear-gradient(135deg,#0f172a,#020617);
-color:white;
-overflow-x:hidden;
-}
-
-/* background animation */
-
-body:before{
-content:"";
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-background:
-radial-gradient(circle at 20% 30%,#1e293b,transparent),
-radial-gradient(circle at 80% 70%,#0ea5e9,transparent);
-animation:bgmove 10s infinite alternate;
-z-index:-1;
-}
-
-@keyframes bgmove{
-
-0%{transform:scale(1)}
-100%{transform:scale(1.3)}
-
-}
-
-header{
-
-text-align:center;
-padding:30px;
-font-size:35px;
-font-weight:bold;
-
-}
-
-nav{
-
-display:flex;
-justify-content:center;
-gap:20px;
-margin-bottom:20px;
-
-}
-
-button{
-
-padding:10px 20px;
-border:none;
-border-radius:8px;
-background:#22c55e;
-color:white;
-cursor:pointer;
-font-size:15px;
-
-}
-
-button:hover{
-
-background:#16a34a;
-transform:scale(1.05);
-
-}
-
-#games{
-
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-gap:20px;
-padding:30px;
-
-}
-
-.game{
-
-background:#1e293b;
-padding:20px;
-border-radius:12px;
-text-align:center;
-transition:0.3s;
-
-}
-
-.game:hover{
-
-transform:translateY(-5px);
-background:#334155;
-
-}
-
-.dashboard{
-
-padding:30px;
-display:none;
-
-}
-
-.card{
-
-background:#1e293b;
-padding:20px;
-border-radius:10px;
-margin:10px;
-
-}
-
+  :root{--bg:#0f1724;--card:#0b1220;--accent:#7c5cff;--muted:#9aa4b2;color-scheme:dark}
+  body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;background:linear-gradient(180deg,#071026 0%,#081226 60%);color:#e6eef8}
+  .wrap{max-width:1000px;margin:40px auto;padding:24px}
+  header{display:flex;align-items:center;gap:18px}
+  .logo{width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#3ec6ff);display:flex;align-items:center;justify-content:center;font-weight:700}
+  h1{margin:0;font-size:20px}
+  p.lead{color:var(--muted);margin:6px 0 18px}
+  .card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);padding:18px;border-radius:12px;box-shadow:0 6px 20px rgba(2,6,23,0.6)}
+  .grid{display:grid;grid-template-columns:1fr 360px;gap:20px}
+  .upload-area{display:flex;flex-direction:column;gap:12px}
+  .drop{border:2px dashed rgba(255,255,255,0.04);padding:20px;border-radius:10px;text-align:center;cursor:pointer}
+  input[type=file]{display:none}
+  .meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .btn{background:var(--accent);padding:10px 14px;border-radius:10px;border:none;color:#fff;cursor:pointer}
+  .btn.secondary{background:transparent;border:1px solid rgba(255,255,255,0.06)}
+  video{max-width:100%;border-radius:8px}
+  footer{margin-top:18px;color:var(--muted);font-size:13px}
+  @media(max-width:900px){.grid{grid-template-columns:1fr;}}
 </style>
-
 </head>
-
 <body>
+  <div class="wrap">
+    <header>
+      <div class="logo">R2L</div>
+      <div>
+        <h1>Replay2Level</h1>
+        <p class="lead">อัปโหลดไฮไลท์เกมของคุณ แล้วให้ระบบแปลงเป็นด่าน 2D ที่เล่นได้จริง — ทดลองเวอร์ชันต้นแบบ</p>
+      </div>
+    </header>
 
-<header>
-🎮 GAMING TOPUP PLATFORM
-</header>
+    <div class="card grid" style="margin-top:18px">
+      <div>
+        <div class="upload-area">
+          <label class="drop" id="dropZone">
+            <strong>ลาก-วางไฟล์วิดีโอที่นี่</strong><br/>
+            หรือคลิกเพื่อเลือกไฟล์ (MP4/WEBM) — ความยาว 5–60 วินาที
+            <input id="fileInput" type="file" accept="video/*" />
+          </label>
 
-<nav>
+          <div id="fileInfo" style="display:none">
+            <div style="display:flex;gap:12px;align-items:center">
+              <video id="preview" controls></video>
+            </div>
+            <div class="meta">
+              <div id="fname"></div>
+              <div style="flex:1"></div>
+              <button class="btn" id="uploadBtn">อัปโหลดเพื่อประมวลผล</button>
+              <button class="btn secondary" id="clearBtn">ล้าง</button>
+            </div>
+            <div id="status" style="color:var(--muted);margin-top:8px;font-size:13px">สถานะ: รออัปโหลด</div>
+          </div>
 
-<button onclick="showGames()">🎮 Games</button>
-<button onclick="showDashboard()">📊 Dashboard</button>
-<button onclick="login()">👤 Login</button>
+          <div id="hint" style="color:var(--muted);font-size:13px;margin-top:8px">
+            ตัวอย่าง: อัปโหลดคลิปกระโดดผ่านศัตรู 1-2 ครั้ง ระบบจะสร้าง platform และenemy spawn ตามการเคลื่อนไหว
+          </div>
+        </div>
 
-</nav>
+        <footer>
+          ทดลองต้นแบบ — ต้องมี backend ที่ให้บริการ API `/api/upload` เพื่อประมวลผลจริง
+        </footer>
+      </div>
 
-<div id="games"></div>
+      <div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div class="card" style="background:rgba(255,255,255,0.015)">
+            <strong>ฟีเจอร์เดโม</strong>
+            <ul style="margin:8px 0 0;color:var(--muted);padding-left:18px">
+              <li>Preview คลิปก่อนส่ง</li>
+              <li>ส่งไฟล์ไปยัง API (placeholder)</li>
+              <li>ดูสถานะการประมวลผล (poll)</li>
+            </ul>
+          </div>
 
-<div id="dashboard" class="dashboard">
-
-<div class="card">
-💰 รายได้วันนี้: <span id="income">0</span> บาท
-</div>
-
-<div class="card">
-🎮 จำนวนออเดอร์: <span id="orders">0</span>
-</div>
-
-</div>
+          <div class="card" style="background:linear-gradient(180deg,rgba(255,255,255,0.01),rgba(255,255,255,0.00))">
+            <strong>Next steps (server)</strong>
+            <ol style="margin:8px 0 0;color:var(--muted);padding-left:18px">
+              <li>จัดเก็บไฟล์ → queue job → worker ประมวลผล → สร้าง level JSON</li>
+              <li>Editor (Phaser) โหลด level JSON เล่น/แก้ไข</li>
+              <li>Marketplace & moderation</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
 <script>
+const drop = document.getElementById('dropZone');
+const input = document.getElementById('fileInput');
+const fileInfo = document.getElementById('fileInfo');
+const preview = document.getElementById('preview');
+const fname = document.getElementById('fname');
+const uploadBtn = document.getElementById('uploadBtn');
+const clearBtn = document.getElementById('clearBtn');
+const statusEl = document.getElementById('status');
 
-let income=0
-let orders=0
+let selectedFile = null;
 
-const games=[
+drop.addEventListener('click', ()=> input.click());
+input.addEventListener('change', handleFiles);
+['dragenter','dragover'].forEach(e=>drop.addEventListener(e, ev=>{ ev.preventDefault(); drop.style.borderColor = 'rgba(255,255,255,0.12)'; }));
+['dragleave','drop'].forEach(e=>drop.addEventListener(e, ev=>{ ev.preventDefault(); drop.style.borderColor = ''; }));
+drop.addEventListener('drop', (ev)=>{ ev.preventDefault(); if(ev.dataTransfer.files.length) { input.files = ev.dataTransfer.files; handleFiles(); }});
 
-"Free Fire",
-"Roblox",
-"PUBG Mobile",
-"Call of Duty Mobile",
-"ROV",
-"Genshin Impact",
-"Mobile Legends",
-"Honkai Star Rail",
-"Valorant",
-"Steam Wallet",
-"Clash of Clans",
-"Clash Royale",
-"FIFA Mobile",
-"League of Legends",
-"Apex Legends",
-"Fortnite",
-"Garena Undawn",
-"Dragon Raja",
-"Tower of Fantasy",
-"Black Desert Mobile"
-
-]
-
-function showGames(){
-
-document.getElementById("dashboard").style.display="none"
-
-let html=""
-
-games.forEach(g=>{
-
-html+=`
-
-<div class="game">
-
-<h3>${g}</h3>
-
-<button onclick="topup('${g}')">
-💳 เติมเงิน
-</button>
-
-</div>
-
-`
-
-})
-
-document.getElementById("games").innerHTML=html
-
+function handleFiles(){
+  const f = input.files[0];
+  if(!f) return;
+  if(!f.type.startsWith('video/')) { alert('รองรับเฉพาะไฟล์วิดีโอ'); return; }
+  selectedFile = f;
+  fname.textContent = f.name + ' · ' + Math.round(f.size/1024/1024)+' MB';
+  preview.src = URL.createObjectURL(f);
+  fileInfo.style.display = 'block';
+  statusEl.textContent = 'สถานะ: พร้อมอัปโหลด';
 }
 
-function showDashboard(){
+clearBtn.addEventListener('click', ()=>{
+  input.value=''; selectedFile=null; fileInfo.style.display='none'; preview.src=''; statusEl.textContent='สถานะ: รออัปโหลด';
+});
 
-document.getElementById("games").innerHTML=""
+uploadBtn.addEventListener('click', async ()=>{
+  if(!selectedFile) return alert('เลือกไฟล์ก่อนอัปโหลด');
+  statusEl.textContent = 'สถานะ: กำลังอัปโหลด...';
+  try{
+    const form = new FormData();
+    form.append('video', selectedFile);
+    // *** เปลี่ยน URL ให้เป็น API จริงของคุณ ***
+    const res = await fetch('/api/upload', { method:'POST', body: form });
+    if(!res.ok) throw new Error('ไม่สามารถอัปโหลดได้');
+    const data = await res.json();
+    statusEl.textContent = 'สถานะ: อัปโหลดเรียบร้อย — jobId: ' + (data.jobId || data.uploadId || 'n/a');
+    // เริ่ม poll สถานะ (ตัวอย่าง)
+    pollStatus(data.jobId || data.uploadId);
+  } catch(err){
+    statusEl.textContent = 'สถานะ: เกิดข้อผิดพลาด — ' + err.message;
+  }
+});
 
-document.getElementById("dashboard").style.display="block"
-
-document.getElementById("income").innerText=income
-document.getElementById("orders").innerText=orders
-
+async function pollStatus(id){
+  statusEl.textContent = 'สถานะ: รอผลการประมวลผล (polling)...';
+  try{
+    // ตัวอย่าง poll 1 ครั้งเพื่อโชว์ flow (เปลี่ยนเป็น polling interval ที่จริง)
+    const res = await fetch('/api/upload/' + id + '/status');
+    if(!res.ok) { statusEl.textContent = 'สถานะ: ไม่พบสถานะ'; return; }
+    const s = await res.json();
+    statusEl.textContent = 'สถานะ: ' + (s.status || 'unknown') + (s.levelId ? ' — Level ready: ' + s.levelId : '');
+  } catch(e){
+    statusEl.textContent = 'สถานะ: ตรวจสถานะล้มเหลว';
+  }
 }
-
-function topup(game){
-
-let amount=prompt("เติมเงิน "+game+" จำนวนบาท")
-
-if(!amount)return
-
-alert("สร้าง QR PromptPay สำหรับ "+amount+" บาท")
-
-income+=parseInt(amount)
-orders++
-
-}
-
-function login(){
-
-let user=prompt("Username")
-
-if(user){
-
-alert("ยินดีต้อนรับ "+user)
-
-}
-
-}
-
-showGames()
-
 </script>
-
-</body>
-</html>
