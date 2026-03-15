@@ -1,157 +1,421 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Replay2Level — สร้างด่านจากคลิปเกม</title>
+<meta charset="UTF-8">
+<title>CODM PRO LAB</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+
 <style>
-  :root{--bg:#0f1724;--card:#0b1220;--accent:#7c5cff;--muted:#9aa4b2;color-scheme:dark}
-  body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;background:linear-gradient(180deg,#071026 0%,#081226 60%);color:#e6eef8}
-  .wrap{max-width:1000px;margin:40px auto;padding:24px}
-  header{display:flex;align-items:center;gap:18px}
-  .logo{width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#3ec6ff);display:flex;align-items:center;justify-content:center;font-weight:700}
-  h1{margin:0;font-size:20px}
-  p.lead{color:var(--muted);margin:6px 0 18px}
-  .card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);padding:18px;border-radius:12px;box-shadow:0 6px 20px rgba(2,6,23,0.6)}
-  .grid{display:grid;grid-template-columns:1fr 360px;gap:20px}
-  .upload-area{display:flex;flex-direction:column;gap:12px}
-  .drop{border:2px dashed rgba(255,255,255,0.04);padding:20px;border-radius:10px;text-align:center;cursor:pointer}
-  input[type=file]{display:none}
-  .meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  .btn{background:var(--accent);padding:10px 14px;border-radius:10px;border:none;color:#fff;cursor:pointer}
-  .btn.secondary{background:transparent;border:1px solid rgba(255,255,255,0.06)}
-  video{max-width:100%;border-radius:8px}
-  footer{margin-top:18px;color:var(--muted);font-size:13px}
-  @media(max-width:900px){.grid{grid-template-columns:1fr;}}
+
+body{
+margin:0;
+font-family:Orbitron;
+background: radial-gradient(circle at top,#0f172a,#020617);
+color:white;
+}
+
+header{
+text-align:center;
+padding:20px;
+font-size:32px;
+letter-spacing:4px;
+border-bottom:2px solid cyan;
+text-shadow:0 0 10px cyan;
+}
+
+nav{
+display:flex;
+justify-content:center;
+gap:20px;
+margin:20px;
+flex-wrap:wrap;
+}
+
+.button{
+background:linear-gradient(90deg,#06b6d4,#3b82f6);
+padding:10px 20px;
+border-radius:8px;
+cursor:pointer;
+transition:0.2s;
+}
+
+.button:hover{
+transform:scale(1.1);
+box-shadow:0 0 15px cyan;
+}
+
+.section{
+display:none;
+padding:30px;
+}
+
+.active{
+display:block;
+}
+
+.grid{
+display:grid;
+grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
+gap:20px;
+}
+
+.card{
+background:#0b1220;
+border:1px solid #1f2937;
+border-radius:12px;
+padding:20px;
+box-shadow:0 0 20px rgba(0,255,255,0.1);
+}
+
+.map{
+position:relative;
+width:700px;
+}
+
+.marker{
+position:absolute;
+font-size:22px;
+cursor:pointer;
+}
+
+.target{
+width:40px;
+height:40px;
+background:red;
+border-radius:50%;
+position:absolute;
+cursor:pointer;
+box-shadow:0 0 10px red;
+}
+
+canvas{
+background:#020617;
+border:1px solid cyan;
+}
+
 </style>
 </head>
+
 <body>
-  <div class="wrap">
-    <header>
-      <div class="logo">R2L</div>
-      <div>
-        <h1>Replay2Level</h1>
-        <p class="lead">อัปโหลดไฮไลท์เกมของคุณ แล้วให้ระบบแปลงเป็นด่าน 2D ที่เล่นได้จริง — ทดลองเวอร์ชันต้นแบบ</p>
-      </div>
-    </header>
 
-    <div class="card grid" style="margin-top:18px">
-      <div>
-        <div class="upload-area">
-          <label class="drop" id="dropZone">
-            <strong>ลาก-วางไฟล์วิดีโอที่นี่</strong><br/>
-            หรือคลิกเพื่อเลือกไฟล์ (MP4/WEBM) — ความยาว 5–60 วินาที
-            <input id="fileInput" type="file" accept="video/*" />
-          </label>
+<header>🎮 CODM PRO LAB</header>
 
-          <div id="fileInfo" style="display:none">
-            <div style="display:flex;gap:12px;align-items:center">
-              <video id="preview" controls></video>
-            </div>
-            <div class="meta">
-              <div id="fname"></div>
-              <div style="flex:1"></div>
-              <button class="btn" id="uploadBtn">อัปโหลดเพื่อประมวลผล</button>
-              <button class="btn secondary" id="clearBtn">ล้าง</button>
-            </div>
-            <div id="status" style="color:var(--muted);margin-top:8px;font-size:13px">สถานะ: รออัปโหลด</div>
-          </div>
+<nav>
 
-          <div id="hint" style="color:var(--muted);font-size:13px;margin-top:8px">
-            ตัวอย่าง: อัปโหลดคลิปกระโดดผ่านศัตรู 1-2 ครั้ง ระบบจะสร้าง platform และenemy spawn ตามการเคลื่อนไหว
-          </div>
-        </div>
+<div class="button" onclick="showSection('weapons')">Weapons</div>
+<div class="button" onclick="showSection('hud')">HUD</div>
+<div class="button" onclick="showSection('maps')">Maps</div>
+<div class="button" onclick="showSection('trainer')">Aim Trainer</div>
+<div class="button" onclick="showSection('recoil')">Recoil</div>
+<div class="button" onclick="showSection('circle')">Circle AI</div>
 
-        <footer>
-          ทดลองต้นแบบ — ต้องมี backend ที่ให้บริการ API `/api/upload` เพื่อประมวลผลจริง
-        </footer>
-      </div>
+</nav>
 
-      <div>
-        <div style="display:flex;flex-direction:column;gap:12px">
-          <div class="card" style="background:rgba(255,255,255,0.015)">
-            <strong>ฟีเจอร์เดโม</strong>
-            <ul style="margin:8px 0 0;color:var(--muted);padding-left:18px">
-              <li>Preview คลิปก่อนส่ง</li>
-              <li>ส่งไฟล์ไปยัง API (placeholder)</li>
-              <li>ดูสถานะการประมวลผล (poll)</li>
-            </ul>
-          </div>
+<!-- WEAPONS -->
 
-          <div class="card" style="background:linear-gradient(180deg,rgba(255,255,255,0.01),rgba(255,255,255,0.00))">
-            <strong>Next steps (server)</strong>
-            <ol style="margin:8px 0 0;color:var(--muted);padding-left:18px">
-              <li>จัดเก็บไฟล์ → queue job → worker ประมวลผล → สร้าง level JSON</li>
-              <li>Editor (Phaser) โหลด level JSON เล่น/แก้ไข</li>
-              <li>Marketplace & moderation</li>
-            </ol>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+<div id="weapons" class="section active">
+
+<h2>🔫 Weapon Database</h2>
+
+<div id="weaponList" class="grid"></div>
+
+</div>
+
+<!-- HUD -->
+
+<div id="hud" class="section">
+
+<h2>🎮 Pro HUD Layouts</h2>
+
+<div id="hudList" class="grid"></div>
+
+</div>
+
+<!-- MAP -->
+
+<div id="maps" class="section">
+
+<h2>🗺 Interactive Map</h2>
+
+<div class="map">
+
+<img src="https://i.imgur.com/tY9gO0H.jpeg" width="700">
+
+<div class="marker" style="top:40%;left:60%">🎯</div>
+<div class="marker" style="top:50%;left:20%">🟢</div>
+<div class="marker" style="top:30%;left:35%">💰</div>
+
+</div>
+
+</div>
+
+<!-- AIM TRAINER -->
+
+<div id="trainer" class="section">
+
+<h2>🎯 Aim Trainer</h2>
+
+<p>Score: <span id="score">0</span></p>
+
+<button class="button" onclick="spawn()">Start</button>
+
+</div>
+
+<!-- RECOIL -->
+
+<div id="recoil" class="section">
+
+<h2>🔫 Recoil Simulator</h2>
+
+<select id="gunSelect"></select>
+
+<br><br>
+
+<canvas id="canvas" width="400" height="400"></canvas>
+
+<br><br>
+
+<button class="button" onclick="simulateRecoil()">ยิงปืน</button>
+
+</div>
+
+<!-- CIRCLE AI -->
+
+<div id="circle" class="section">
+
+<h2>🧠 Battle Royale Circle Predictor</h2>
+
+<button class="button" onclick="predictCircle()">Predict Next Circle</button>
+
+<h3 id="circleResult"></h3>
+
+</div>
 
 <script>
-const drop = document.getElementById('dropZone');
-const input = document.getElementById('fileInput');
-const fileInfo = document.getElementById('fileInfo');
-const preview = document.getElementById('preview');
-const fname = document.getElementById('fname');
-const uploadBtn = document.getElementById('uploadBtn');
-const clearBtn = document.getElementById('clearBtn');
-const statusEl = document.getElementById('status');
 
-let selectedFile = null;
+function showSection(id){
 
-drop.addEventListener('click', ()=> input.click());
-input.addEventListener('change', handleFiles);
-['dragenter','dragover'].forEach(e=>drop.addEventListener(e, ev=>{ ev.preventDefault(); drop.style.borderColor = 'rgba(255,255,255,0.12)'; }));
-['dragleave','drop'].forEach(e=>drop.addEventListener(e, ev=>{ ev.preventDefault(); drop.style.borderColor = ''; }));
-drop.addEventListener('drop', (ev)=>{ ev.preventDefault(); if(ev.dataTransfer.files.length) { input.files = ev.dataTransfer.files; handleFiles(); }});
+document.querySelectorAll(".section")
+.forEach(s=>s.classList.remove("active"))
 
-function handleFiles(){
-  const f = input.files[0];
-  if(!f) return;
-  if(!f.type.startsWith('video/')) { alert('รองรับเฉพาะไฟล์วิดีโอ'); return; }
-  selectedFile = f;
-  fname.textContent = f.name + ' · ' + Math.round(f.size/1024/1024)+' MB';
-  preview.src = URL.createObjectURL(f);
-  fileInfo.style.display = 'block';
-  statusEl.textContent = 'สถานะ: พร้อมอัปโหลด';
+document.getElementById(id).classList.add("active")
+
 }
 
-clearBtn.addEventListener('click', ()=>{
-  input.value=''; selectedFile=null; fileInfo.style.display='none'; preview.src=''; statusEl.textContent='สถานะ: รออัปโหลด';
-});
+const weapons=[
 
-uploadBtn.addEventListener('click', async ()=>{
-  if(!selectedFile) return alert('เลือกไฟล์ก่อนอัปโหลด');
-  statusEl.textContent = 'สถานะ: กำลังอัปโหลด...';
-  try{
-    const form = new FormData();
-    form.append('video', selectedFile);
-    // *** เปลี่ยน URL ให้เป็น API จริงของคุณ ***
-    const res = await fetch('/api/upload', { method:'POST', body: form });
-    if(!res.ok) throw new Error('ไม่สามารถอัปโหลดได้');
-    const data = await res.json();
-    statusEl.textContent = 'สถานะ: อัปโหลดเรียบร้อย — jobId: ' + (data.jobId || data.uploadId || 'n/a');
-    // เริ่ม poll สถานะ (ตัวอย่าง)
-    pollStatus(data.jobId || data.uploadId);
-  } catch(err){
-    statusEl.textContent = 'สถานะ: เกิดข้อผิดพลาด — ' + err.message;
-  }
-});
+{
+name:"M13",
+type:"Assault Rifle",
+damage:24,
+fire_rate:88,
+accuracy:56,
+mobility:72,
+range:56,
+control:43,
+pro_build:[
+"Monolithic Suppressor",
+"RTC Heavy Barrel",
+"No Stock",
+"OWC Tactical Laser",
+"Granulated Grip"
+],
+recoil:[[0,-5],[1,-7],[-1,-9],[2,-12],[-2,-14]]
+},
 
-async function pollStatus(id){
-  statusEl.textContent = 'สถานะ: รอผลการประมวลผล (polling)...';
-  try{
-    // ตัวอย่าง poll 1 ครั้งเพื่อโชว์ flow (เปลี่ยนเป็น polling interval ที่จริง)
-    const res = await fetch('/api/upload/' + id + '/status');
-    if(!res.ok) { statusEl.textContent = 'สถานะ: ไม่พบสถานะ'; return; }
-    const s = await res.json();
-    statusEl.textContent = 'สถานะ: ' + (s.status || 'unknown') + (s.levelId ? ' — Level ready: ' + s.levelId : '');
-  } catch(e){
-    statusEl.textContent = 'สถานะ: ตรวจสถานะล้มเหลว';
-  }
+{
+name:"Kilo 141",
+type:"Assault Rifle",
+damage:29,
+fire_rate:68,
+accuracy:57,
+mobility:79,
+range:54,
+control:55,
+pro_build:[
+"Tactical Suppressor",
+"MIP Extended Light Barrel",
+"Ranger Foregrip",
+"Granulated Grip Tape",
+"Large Extended Mag"
+],
+recoil:[[0,-6],[1,-9],[-1,-11],[2,-14]]
+},
+
+{
+name:"AK47",
+type:"Assault Rifle",
+damage:33,
+fire_rate:55,
+accuracy:67,
+mobility:74,
+range:58,
+control:44,
+pro_build:[
+"OWC Ranger",
+"Strike Foregrip",
+"Extended Mag",
+"Granulated Grip",
+"Tactical Laser"
+],
+recoil:[[0,-8],[2,-10],[-2,-12]]
+},
+
+{
+name:"DLQ33",
+type:"Sniper",
+damage:90,
+fire_rate:28,
+accuracy:85,
+mobility:50,
+range:90,
+control:70,
+pro_build:[
+"OWC Tactical Laser",
+"Extended Mag",
+"Stippled Grip"
+],
+recoil:[[0,-15]]
 }
+
+]
+
+let weaponList=document.getElementById("weaponList")
+
+weapons.forEach(w=>{
+
+let div=document.createElement("div")
+div.className="card"
+
+div.innerHTML=`
+<h3>${w.name}</h3>
+<p>${w.type}</p>
+<p>Damage: ${w.damage}</p>
+<ul>${w.pro_build.map(a=>"<li>"+a+"</li>").join("")}</ul>
+`
+
+weaponList.appendChild(div)
+
+})
+
+let select=document.getElementById("gunSelect")
+
+weapons.forEach(w=>{
+
+let opt=document.createElement("option")
+opt.value=w.name
+opt.innerText=w.name
+
+select.appendChild(opt)
+
+})
+
+function simulateRecoil(){
+
+let gun=weapons.find(g=>g.name===select.value)
+
+let canvas=document.getElementById("canvas")
+let ctx=canvas.getContext("2d")
+
+ctx.clearRect(0,0,400,400)
+
+let x=200
+let y=300
+
+ctx.beginPath()
+ctx.moveTo(x,y)
+
+gun.recoil.forEach(p=>{
+
+x+=p[0]*5
+y+=p[1]
+
+ctx.lineTo(x,y)
+
+})
+
+ctx.strokeStyle="cyan"
+ctx.lineWidth=3
+ctx.stroke()
+
+}
+
+const hud=[
+
+{
+name:"4 Finger Pro",
+image:"https://i.imgur.com/0v5XK0U.png",
+description:"Competitive claw layout"
+},
+
+{
+name:"6 Finger Pro",
+image:"https://i.imgur.com/0v5XK0U.png",
+description:"Tournament layout"
+}
+
+]
+
+let hudList=document.getElementById("hudList")
+
+hud.forEach(h=>{
+
+let div=document.createElement("div")
+
+div.className="card"
+
+div.innerHTML=`
+<h3>${h.name}</h3>
+<img src="${h.image}" width="200">
+<p>${h.description}</p>
+`
+
+hudList.appendChild(div)
+
+})
+
+let score=0
+
+function spawn(){
+
+let target=document.createElement("div")
+
+target.className="target"
+
+target.style.left=Math.random()*window.innerWidth+"px"
+target.style.top=Math.random()*window.innerHeight+"px"
+
+target.onclick=()=>{
+
+score++
+
+document.getElementById("score").innerText=score
+
+target.remove()
+
+spawn()
+
+}
+
+document.body.appendChild(target)
+
+}
+
+function predictCircle(){
+
+let directions=["North","South","East","West"]
+
+let dir=directions[Math.floor(Math.random()*4)]
+
+let prob=Math.floor(Math.random()*40)+40
+
+document.getElementById("circleResult").innerText=
+"Next Circle → "+dir+" ("+prob+"%)"
+
+}
+
 </script>
+
+</body>
+</html>
